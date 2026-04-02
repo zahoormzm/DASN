@@ -1,0 +1,14 @@
+string zone_id
+builtin_interfaces/Time timestamp
+bool radar_presence
+float32 radar_confidence
+bool pir_triggered
+float32 sound_level_db
+bool sound_transient
+float32 bme688_gas_resistance
+float32 bme688_temperature
+float32 bme688_humidity
+float32 bme688_pressure
+float32 battery_v
+float32 local_threat_score
+string comm_mode

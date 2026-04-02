@@ -1,0 +1,207 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dasn_bot">
+
+  <!-- ==================== Materials ==================== -->
+  <material name="dark_gray">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+  <material name="black">
+    <color rgba="0.05 0.05 0.05 1.0"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.2 0.2 0.8 1.0"/>
+  </material>
+  <material name="red">
+    <color rgba="0.8 0.1 0.1 1.0"/>
+  </material>
+
+  <!-- ==================== Properties ==================== -->
+  <xacro:property name="chassis_length" value="0.16"/>
+  <xacro:property name="chassis_width"  value="0.12"/>
+  <xacro:property name="chassis_height" value="0.04"/>
+
+  <xacro:property name="wheel_radius" value="0.017"/>
+  <xacro:property name="wheel_width"  value="0.02"/>
+
+  <!-- Wheel X/Y offsets from base_link center -->
+  <xacro:property name="wheel_x_front" value="0.06"/>
+  <xacro:property name="wheel_x_rear"  value="-0.06"/>
+  <xacro:property name="wheel_y_offset" value="0.07"/>
+  <!-- Wheels sit at the bottom of the chassis -->
+  <xacro:property name="wheel_z_offset" value="-0.003"/>
+
+  <!-- ==================== Wheel Macro ==================== -->
+  <xacro:macro name="wheel" params="name x y">
+    <link name="${name}_wheel_link">
+      <visual>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.02"/>
+        <inertia ixx="1.0e-6" ixy="0" ixz="0"
+                 iyy="1.0e-6" iyz="0"
+                 izz="1.0e-6"/>
+      </inertial>
+    </link>
+
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}_wheel_link"/>
+      <origin xyz="${x} ${y} ${wheel_z_offset}" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ==================== Base Footprint ==================== -->
+  <link name="base_footprint"/>
+
+  <!-- ==================== Base Link (Chassis) ==================== -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="dark_gray"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="3.0e-4" ixy="0" ixz="0"
+               iyy="4.0e-4" iyz="0"
+               izz="5.0e-4"/>
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="base_footprint"/>
+    <origin xyz="0 0 -0.019" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ==================== Wheels ==================== -->
+  <xacro:wheel name="front_left"  x="${wheel_x_front}" y="${wheel_y_offset}"/>
+  <xacro:wheel name="front_right" x="${wheel_x_front}" y="${-wheel_y_offset}"/>
+  <xacro:wheel name="rear_left"   x="${wheel_x_rear}"  y="${wheel_y_offset}"/>
+  <xacro:wheel name="rear_right"  x="${wheel_x_rear}"  y="${-wheel_y_offset}"/>
+
+  <!-- ==================== IMU Link ==================== -->
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 0.01"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.02 0.02 0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="1.0e-7" ixy="0" ixz="0"
+               iyy="1.0e-7" iyz="0"
+               izz="1.0e-7"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ==================== ToF Front Sensor ==================== -->
+  <link name="tof_front">
+    <visual>
+      <geometry>
+        <box size="0.01 0.015 0.01"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.01 0.015 0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <inertia ixx="1.0e-7" ixy="0" ixz="0"
+               iyy="1.0e-7" iyz="0"
+               izz="1.0e-7"/>
+    </inertial>
+  </link>
+
+  <joint name="tof_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_front"/>
+    <origin xyz="0.08 0 0.05" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ==================== Sonar Rear Sensor ==================== -->
+  <link name="sonar_rear">
+    <visual>
+      <geometry>
+        <cylinder radius="0.01" length="0.015"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.01" length="0.015"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="1.0e-7" ixy="0" ixz="0"
+               iyy="1.0e-7" iyz="0"
+               izz="1.0e-7"/>
+    </inertial>
+  </link>
+
+  <joint name="sonar_rear_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sonar_rear"/>
+    <origin xyz="-0.08 0 0.05" rpy="0 0 ${pi}"/>
+  </joint>
+
+  <!-- ==================== Camera Link (Phone Mount) ==================== -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.07 0.035 0.01"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.07 0.035 0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="1.0e-5" ixy="0" ixz="0"
+               iyy="1.0e-5" iyz="0"
+               izz="1.0e-5"/>
+    </inertial>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+  </joint>
+
+</robot>

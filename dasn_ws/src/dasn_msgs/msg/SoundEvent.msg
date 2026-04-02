@@ -1,0 +1,4 @@
+string classification
+float32 confidence
+string zone_id
+builtin_interfaces/Time timestamp

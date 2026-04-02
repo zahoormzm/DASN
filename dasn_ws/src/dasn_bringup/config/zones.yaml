@@ -1,0 +1,24 @@
+zones:
+  FRONT_DOOR:
+    position: [2.0, 4.8]
+    type: "entry"
+    sentinel_type: "A"
+  WINDOW_1:
+    position: [3.8, 2.5]
+    type: "window"
+    sentinel_type: "C"
+  BACK_DOOR:
+    position: [2.0, 0.2]
+    type: "entry"
+    sentinel_type: "A"
+room:
+  width: 4.0
+  height: 5.0
+  walls:
+    - [[0, 0], [4, 0]]
+    - [[4, 0], [4, 5]]
+    - [[4, 5], [0, 5]]
+    - [[0, 5], [0, 0]]
+dock:
+  position: [0.5, 0.5]
+  heading_deg: 0.0

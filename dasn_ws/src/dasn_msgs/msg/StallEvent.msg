@@ -1,0 +1,2 @@
+uint8 motor_channel
+builtin_interfaces/Time timestamp

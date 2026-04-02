@@ -1,0 +1,13 @@
+threat_weights:
+  radar_presence: 0.25
+  pir_motion: 0.10
+  sound_anomaly: 0.20
+  unknown_face: 0.25
+  gas_smoke_anomaly: 0.10
+  auth_failure: 0.10
+multipliers:
+  nighttime_start: 22
+  nighttime_end: 6
+  nighttime_factor: 2.0
+  zone_history_max: 1.5
+  zone_history_decay_hours: 24

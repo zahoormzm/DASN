@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+*.swo
+.vscode/
+.idea/
+
+dasn_ws/build/
+dasn_ws/install/
+dasn_ws/log/
+
+*.db
+
+firmware/.DS_Store
+firmware/sensor_test/.DS_Store

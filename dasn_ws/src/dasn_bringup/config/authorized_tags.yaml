@@ -1,0 +1,12 @@
+tags:
+  - id: "04:A2:B3:C4:D5:E6:F7"
+    name: "Admin"
+    methods: ["nfc", "touch"]
+    zones: ["FRONT_DOOR", "WINDOW_1", "BACK_DOOR"]
+  - id: "04:11:22:33:44:55:66"
+    name: "User1"
+    methods: ["nfc"]
+    zones: ["FRONT_DOOR"]
+touch_patterns:
+  arm: "LRR"
+  disarm: "RLL"
