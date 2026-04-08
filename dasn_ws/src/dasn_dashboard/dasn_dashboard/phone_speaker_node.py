@@ -1,10 +1,13 @@
 import time
 import urllib.request
 import urllib.error
+import subprocess
+import json
 
 import rclpy
 from rclpy.node import Node
 from dasn_msgs.msg import AlarmEvent
+from std_msgs.msg import String
 
 
 class PhoneSpeakerNode(Node):
@@ -29,6 +32,12 @@ class PhoneSpeakerNode(Node):
             AlarmEvent,
             '/alerts/alarm',
             self._alarm_cb,
+            10,
+        )
+        self._voice_sub = self.create_subscription(
+            String,
+            '/alerts/voice_prompt',
+            self._voice_prompt_cb,
             10,
         )
 
@@ -72,6 +81,20 @@ class PhoneSpeakerNode(Node):
             self._alarm_siren_loop()
             self._start_strobe()
 
+    def _voice_prompt_cb(self, msg: String):
+        try:
+            payload = json.loads(msg.data)
+        except Exception:
+            payload = {'prompt': msg.data}
+
+        prompt = str(payload.get('prompt') or '').strip()
+        if not prompt:
+            return
+
+        self.get_logger().info(f'Voice prompt requested: {prompt}')
+        self._single_beep()
+        self._speak_local(prompt)
+
     # ------------------------------------------------------------------
     # Alert actions
     # ------------------------------------------------------------------
@@ -79,6 +102,12 @@ class PhoneSpeakerNode(Node):
         """Play a single beep via the phone speaker."""
         self.get_logger().info('Triggering single beep on phone')
         self._http_get(self._SOUND_URL.format(ip=self._phone_ip))
+
+    def _speak_local(self, text: str):
+        try:
+            subprocess.Popen(['say', text])
+        except Exception as e:
+            self.get_logger().warn(f'Local speech failed: {e}')
 
     def _alarm_siren_loop(self):
         """Trigger alarm siren loop via repeated audio plays."""

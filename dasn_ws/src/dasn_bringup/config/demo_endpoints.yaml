@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    rp5_rtsp_url: "rtsp://192.168.1.100:8554/stream"
+    bot_phone_ip: "192.168.1.101"

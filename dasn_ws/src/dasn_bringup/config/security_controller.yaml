@@ -1,0 +1,34 @@
+security_controller:
+  ros__parameters:
+    zone_ids: ['FRONT_DOOR']
+    detection_zone: 'FRONT_DOOR'
+    countdown_seconds: 60
+    sound_threshold_db: 70.0
+    sound_penalty_seconds: 10
+    sound_penalty_cooldown_seconds: 5
+    tof_near_threshold_mm: 900
+    tof_penalty_seconds: 15
+    tof_penalty_cooldown_seconds: 5
+    tof_approach_score_threshold: 0.55
+    tof_warning_threshold_mm: 900
+    tof_warning_penalty_seconds: 20
+    warning_cooldown_seconds: 8
+    default_password: '1234'
+    zone_passwords:
+      - 'FRONT_DOOR:1234'
+    auth_host: '0.0.0.0'
+    auth_port: 8765
+    public_base_url: 'http://localhost:8765'
+    control_udp_port: 37021
+    state_publish_topic: '/security/state'
+    auto_dispatch_bot: true
+    auto_patrol_on_start: true
+    escalation_delay_seconds: 15
+    call_webhook_url: ''
+    call_cooldown_seconds: 120
+    door_a_x: 1.2
+    door_a_y: 0.0
+    door_b_x: 0.0
+    door_b_y: 0.0
+    dock_x: 0.0
+    dock_y: 0.0

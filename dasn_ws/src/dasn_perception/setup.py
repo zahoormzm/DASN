@@ -18,14 +18,10 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
+            'rtsp_camera_node = dasn_perception.rtsp_camera_node:main',
             'phone_camera_node = dasn_perception.phone_camera_node:main',
-            'espcam_node = dasn_perception.espcam_node:main',
             'face_detector_node = dasn_perception.face_detector_node:main',
-            'face_recognizer_node = dasn_perception.face_recognizer_node:main',
             'object_detector_node = dasn_perception.object_detector_node:main',
-            'pose_analyzer_node = dasn_perception.pose_analyzer_node:main',
-            'sound_classifier_node = dasn_perception.sound_classifier_node:main',
-            'gas_analyzer_node = dasn_perception.gas_analyzer_node:main',
         ],
     },
 )

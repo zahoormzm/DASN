@@ -20,7 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'telegram_alert = dasn_dashboard.telegram_alert_node:main',
             'phone_speaker = dasn_dashboard.phone_speaker_node:main',
         ],
     },

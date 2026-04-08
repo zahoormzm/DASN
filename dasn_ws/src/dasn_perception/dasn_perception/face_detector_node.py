@@ -62,6 +62,9 @@ class FaceDetectorNode(Node):
         # Subscribe to both camera topics
         self.create_subscription(Image, '/camera/phone/image_raw', self._on_phone_image, 10)
         self.create_subscription(Image, '/camera/espcam/image_raw', self._on_espcam_image, 10)
+        self.create_subscription(
+            Image, '/camera/espcam/snapshot/image_raw', self._on_espcam_snapshot, 10
+        )
 
         self.get_logger().info('Face detector node started (MediaPipe).')
 
@@ -70,6 +73,9 @@ class FaceDetectorNode(Node):
 
     def _on_espcam_image(self, msg: Image):
         self._process_image(msg, source='espcam')
+
+    def _on_espcam_snapshot(self, msg: Image):
+        self._process_image(msg, source='espcam_snapshot')
 
     def _process_image(self, msg: Image, source: str):
         try:

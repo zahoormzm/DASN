@@ -1,32 +1,24 @@
-# DASN Mobile Unit Test Sketches
+# DASN Demo Firmware Test Sketches
 
-## Files
-- `mobile_unit_esp32_sensor_test/mobile_unit_esp32_sensor_test.ino`  
-  Tests ESP32-side sensors: IMU, magnetometer, INA219, ToF, ultrasonic, and manual encoder spin.
-- `mobile_unit_aiduino_motor_test/mobile_unit_aiduino_motor_test.ino`  
-  Tests Aiduino motor outputs, buzzer, OLED, watchdog, and serial command parser.
-- `mobile_unit_esp32_motor_encoder_test/mobile_unit_esp32_motor_encoder_test.ino`  
-  Runs motors through Aiduino and verifies encoder deltas while moving.
-- `sensor_test.ino`  
-  Legacy all-in-one sketch (kept for backward compatibility).
+This folder now keeps only the sketches that matter for the pivoted presentation stack.
 
-Important: Arduino IDE compiles all `.ino` files in the same sketch folder together.  
-Each new test is in its own subfolder so they compile independently.
+## Kept Files
+- `sentinel_type_a_pivot_test/sentinel_type_a_pivot_test.ino`
+  Hardware test sketch for the fixed Sentinel Type A ESP32 node.
+- `sentinel_type_a_pivot_test/config.h`
+  Local pin map for the pivot test sketch.
+- `mobile_unit_esp32_imu_encoder_calibration/mobile_unit_esp32_imu_encoder_calibration.ino`
+  Mobile bot motion / pose calibration sketch used by the new demo bot bridge.
 
-## Motor + Encoder Validation Flow
-1. Flash Aiduino with `mobile_unit_aiduino_motor_test/mobile_unit_aiduino_motor_test.ino`.
-2. Flash ESP32 with `mobile_unit_esp32_motor_encoder_test/mobile_unit_esp32_motor_encoder_test.ino`.
-3. Open ESP32 serial monitor at `115200`.
-4. Send `r` to run the full sequence.
-5. Confirm per-wheel counts (`FL/FR/RL/RR`) and deltas change during FWD/REV/SPIN phases.
-6. Check final line prints `RESULT: PASS`.
+## Sentinel Type A Pivot Validation Flow
+1. Flash `sentinel_type_a_pivot_test/sentinel_type_a_pivot_test.ino`.
+2. Install Arduino libraries `Adafruit BME680`, `LiquidCrystal_I2C`, and `SparkFun VL53L5CX`.
+3. Open Serial Monitor at `115200`.
+4. Run menu items in order: `1,2,3,4,5,6,7`.
+5. If the sound sensor pins differ from your build, edit `sentinel_type_a_pivot_test/config.h` first.
 
-## Sensor Validation Flow
-1. Flash ESP32 with `mobile_unit_esp32_sensor_test/mobile_unit_esp32_sensor_test.ino`.
-2. Open serial monitor at `115200`.
-3. Run menu items in order: `1,2,3,4,5,6,7,8`.
-
-## Required Wiring For Combined Motor/Encoder Test
-- ESP32 `TX2 GPIO16` -> Aiduino `RX`
-- ESP32 `RX2 GPIO17` <- Aiduino `TX`
-- Common `GND` between ESP32 and Aiduino
+## Mobile Bot Calibration Flow
+1. Flash `mobile_unit_esp32_imu_encoder_calibration/mobile_unit_esp32_imu_encoder_calibration.ino`.
+2. Open Serial Monitor at `115200`.
+3. Run `IMU`, `MAG`, and `ZERO` before using the bot in the demo.
+4. Use `GO,x,y`, `POSE`, and `STOP` to verify the bot responds before launching ROS.

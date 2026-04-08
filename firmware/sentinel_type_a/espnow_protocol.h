@@ -4,16 +4,16 @@
 #include <stdint.h>
 
 /*
- * DASN ESP-NOW Protocol Header
- * Shared struct for all sentinel-to-gateway communication.
- * comm_mode is always 0 (ESP-NOW only). LoRa is not implemented.
+ * Local copy for Arduino IDE builds.
+ * Keep this in sync with firmware/shared/espnow_protocol.h.
  */
 
 #define COMM_MODE_ESPNOW 0
+#define COMM_MODE_WIFI   1
 
 typedef struct __attribute__((packed)) {
-    char     zone_id[16];           // e.g. "FRONT_DOOR"
-    uint32_t timestamp;             // millis()
+    char     zone_id[16];
+    uint32_t timestamp;
     bool     radar_presence;
     float    radar_confidence;
     bool     pir_triggered;
@@ -25,10 +25,9 @@ typedef struct __attribute__((packed)) {
     float    bme688_pressure;
     float    battery_v;
     float    local_threat_score;
-    uint8_t  comm_mode;             // 0 = espnow only
+    uint8_t  comm_mode;
 } SentinelData_t;
 
-// ESP-NOW maximum payload is 250 bytes; SentinelData_t must fit.
 static_assert(sizeof(SentinelData_t) <= 250, "SentinelData_t exceeds ESP-NOW payload limit");
 
 #endif // ESPNOW_PROTOCOL_H

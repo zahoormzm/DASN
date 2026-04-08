@@ -5,52 +5,13 @@
       port: "/dev/ttyUSB1"
       baud_rate: 115200
 
-    # Drive train
-    drive:
-      track_width: 0.16
-      wheel_radius: 0.017
-      wheel_circumference: 0.107
-      pulses_per_revolution: 300
-      ticks_to_meters: 0.000357
-      max_speed: 0.535
-
-    # PID controllers
-    pid:
-      linear:
-        kp: 1.0
-        ki: 0.1
-        kd: 0.05
-      angular:
-        kp: 2.0
-        ki: 0.2
-        kd: 0.1
-
-    # Navigation
-    navigation:
-      planner_type: "astar"
-      max_linear_velocity: 0.3
-      max_angular_velocity: 1.5
-      goal_tolerance: 0.1
-      lookahead_distance: 0.15
-
-    # Obstacle avoidance
-    obstacle_avoidance:
-      min_distance: 200
-      slow_distance: 300
-
-    # Stall detection (encoder-based)
-    stall:
-      encoder_timeout_s: 0.5
-      min_pwm: 30
-
-    # Battery
-    battery:
-      low_voltage: 10.0
-      critical_voltage: 9.5
-
-    # Docking
-    dock:
-      position_x: 0.5
-      position_y: 0.5
-      approach_speed: 0.1
-      final_distance: 50
+    demo_bot:
+      pose_poll_interval_s: 1.0
+      status_publish_interval_s: 0.5
+      door_a_x: 1.2
+      door_a_y: 0.0
+      door_b_x: 0.0
+      door_b_y: 0.0
+      dock_x: 0.0
+      dock_y: 0.0
+      door_b_patrol_points: [0.0, 0.0, 0.25, 0.0, 0.25, 0.25, 0.0, 0.25]

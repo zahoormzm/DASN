@@ -13,14 +13,8 @@
   <exec_depend>dasn_msgs</exec_depend>
   <exec_depend>dasn_perception</exec_depend>
   <exec_depend>dasn_sentinel</exec_depend>
-  <exec_depend>dasn_threat</exec_depend>
   <exec_depend>dasn_navigation</exec_depend>
   <exec_depend>dasn_dashboard</exec_depend>
-  <exec_depend>dasn_description</exec_depend>
-  <exec_depend>nav2_bringup</exec_depend>
-  <exec_depend>rosbridge_server</exec_depend>
-  <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

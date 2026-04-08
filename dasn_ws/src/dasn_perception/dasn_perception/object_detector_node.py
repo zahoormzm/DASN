@@ -1,7 +1,7 @@
 """
 Object Detector Node — /ml/object_detector
 
-Subscribes to /camera/phone/image_raw, runs YOLOv8n TFLite inference,
+Subscribes to RTSP/phone/ESP32 camera image topics, runs YOLOv8n TFLite inference,
 and publishes vision_msgs/Detection2DArray.
 """
 
@@ -91,6 +91,8 @@ class ObjectDetectorNode(Node):
         self._init_model()
 
         self.create_subscription(Image, '/camera/phone/image_raw', self._on_image, 10)
+        self.create_subscription(Image, '/camera/espcam/image_raw', self._on_image, 10)
+        self.create_subscription(Image, '/camera/rp5/image_raw', self._on_image, 10)
         self.get_logger().info('Object detector node started (YOLOv8n TFLite).')
 
     def _init_model(self):

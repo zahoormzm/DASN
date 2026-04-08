@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'gateway_receiver = dasn_sentinel.gateway_receiver_node:main',
-            'auth_manager = dasn_sentinel.auth_manager_node:main',
+            'wifi_receiver = dasn_sentinel.wifi_receiver_node:main',
+            'security_controller = dasn_sentinel.security_controller_node:main',
         ],
     },
 )

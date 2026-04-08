@@ -20,12 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'serial_bridge = dasn_navigation.serial_bridge_node:main',
-            'odometry = dasn_navigation.odometry_node:main',
-            'navigator = dasn_navigation.navigator_node:main',
-            'obstacle_avoidance = dasn_navigation.obstacle_avoidance_node:main',
-            'commander = dasn_navigation.commander_node:main',
-            'stall_detector = dasn_navigation.stall_detector_node:main',
+            'demo_bot_bridge = dasn_navigation.demo_bot_bridge_node:main',
         ],
     },
 )
