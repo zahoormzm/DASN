@@ -89,7 +89,7 @@ static const float DEFAULT_TICKS_PER_METER_LEFT = 5610.0f;
 static const float DEFAULT_TICKS_PER_METER_RIGHT = 5742.0f;
 static const float TRACK_WIDTH_M = 0.16f;
 static const float INITIAL_HEADING_RAD = PI * 0.5f; // facing +Y axis
-static const float MAG_FUSION_GAIN = 0.04f;
+static const float MAG_IDLE_FUSION_GAIN = 0.08f;
 
 // ─── Motion control constants ──────────────────────────────────────────────
 static const int TURN_PWM = 95;
@@ -120,6 +120,9 @@ static const uint16_t IMU_CAL_SAMPLES = 1000;
 static const uint16_t IMU_SETTLE_MS = 2000;
 static const uint8_t IMU_SAMPLE_DELAY_MS = 5;
 static const float EXPECTED_GRAVITY_MG = 1000.0f;
+static const uint16_t GYRO_ZERO_SAMPLES = 500;
+static const uint16_t GYRO_ZERO_SETTLE_MS = 1200;
+static const uint8_t GYRO_ZERO_SAMPLE_DELAY_MS = 4;
 
 // ─── Global state ──────────────────────────────────────────────────────────
 SparkFun_ISM330DHCX imu;
@@ -180,6 +183,11 @@ long navDriveStartRightTicks = 0;
 float navDistanceToTravel = 0.0f;
 unsigned long navArrivalAtMs = 0;
 unsigned long lastNavUpdateMs = 0;
+static const uint8_t NAV_MAX_WAYPOINTS = 4;
+float navWaypointX[NAV_MAX_WAYPOINTS];
+float navWaypointY[NAV_MAX_WAYPOINTS];
+uint8_t navWaypointCount = 0;
+uint8_t navWaypointIndex = 0;
 
 // ─── ISR ───────────────────────────────────────────────────────────────────
 void IRAM_ATTR enc1ISR() { enc1Count += (digitalRead(ENC1_B) ? 1 : -1) * ENC1_SIGN; }
@@ -339,6 +347,56 @@ bool readLocalMagHeading(float &headingRad) {
   return true;
 }
 
+bool calibrateGyroBiasQuick(bool verbose) {
+  if (!initIMU()) {
+    if (verbose) {
+      Serial.println("Gyro calibration failed: IMU not available.");
+    }
+    return false;
+  }
+
+  if (verbose) {
+    Serial.println("Gyro zero calibration starting. Keep the robot still.");
+  }
+
+  delay(GYRO_ZERO_SETTLE_MS);
+
+  float gxSum = 0.0f;
+  float gySum = 0.0f;
+  float gzSum = 0.0f;
+  uint16_t samples = 0;
+
+  while (samples < GYRO_ZERO_SAMPLES) {
+    if (imu.checkStatus()) {
+      sfe_ism_data_t gyro;
+      imu.getGyro(&gyro);
+      gxSum += gyro.xData;
+      gySum += gyro.yData;
+      gzSum += gyro.zData;
+      samples++;
+    }
+    delay(GYRO_ZERO_SAMPLE_DELAY_MS);
+  }
+
+  if (samples == 0) {
+    if (verbose) {
+      Serial.println("Gyro zero calibration failed: no samples.");
+    }
+    return false;
+  }
+
+  gyroBiasXMdps = gxSum / (float)samples;
+  gyroBiasYMdps = gySum / (float)samples;
+  gyroBiasZMdps = gzSum / (float)samples;
+
+  if (verbose) {
+    Serial.printf("Gyro zero complete: x=%.3f y=%.3f z=%.3f mdps\n",
+                  gyroBiasXMdps, gyroBiasYMdps, gyroBiasZMdps);
+  }
+
+  return true;
+}
+
 void initEncoders() {
   pinMode(ENC1_A, INPUT);
   pinMode(ENC1_B, INPUT_PULLUP);
@@ -444,10 +502,13 @@ void updateOdometry() {
     poseHeading = normalizeAngle(poseHeading + gzDps * (PI / 180.0f) * dt);
   }
 
+  // The magnetometer gets disturbed by motors, wiring, and battery current
+  // while the robot is moving. Use it only while idle/arrived to gently
+  // re-anchor heading, and rely on the gyro during active navigation.
   float magHeading = 0.0f;
-  if (readLocalMagHeading(magHeading)) {
+  if ((navState == NAV_IDLE || navState == NAV_ARRIVED) && readLocalMagHeading(magHeading)) {
     const float magError = normalizeAngle(magHeading - poseHeading);
-    poseHeading = normalizeAngle(poseHeading + MAG_FUSION_GAIN * magError);
+    poseHeading = normalizeAngle(poseHeading + MAG_IDLE_FUSION_GAIN * magError);
   }
 
   const long left = leftTicksNow();
@@ -483,19 +544,31 @@ void navStopAndIdle() {
   disableMotors();
   navState = NAV_IDLE;
   navArrivalAtMs = 0;
+  navWaypointCount = 0;
+  navWaypointIndex = 0;
 }
 
-void navStartTarget(float tx, float ty) {
+void navStartWaypoint(uint8_t index) {
+  if (index >= navWaypointCount) {
+    navStopAndIdle();
+    return;
+  }
+
   updateOdometry();
 
-  navTargetX = tx;
-  navTargetY = ty;
-  navTargetHeading = navCalculateTargetHeading(tx, ty);
-  navTargetDistance = navCalculateTargetDistance(tx, ty);
+  navWaypointIndex = index;
+  navTargetX = navWaypointX[index];
+  navTargetY = navWaypointY[index];
+  navTargetHeading = navCalculateTargetHeading(navTargetX, navTargetY);
+  navTargetDistance = navCalculateTargetDistance(navTargetX, navTargetY);
 
   if (navTargetDistance <= POSITION_TOLERANCE_M) {
-    Serial.println("Target already within tolerance.");
-    navStopAndIdle();
+    if (index + 1 < navWaypointCount) {
+      navStartWaypoint(index + 1);
+    } else {
+      Serial.println("[nav] target already within tolerance.");
+      navStopAndIdle();
+    }
     return;
   }
 
@@ -503,8 +576,40 @@ void navStartTarget(float tx, float ty) {
   navState = NAV_ROTATING;
   navArrivalAtMs = 0;
 
-  Serial.printf("[nav] target=(%.3f, %.3f) heading=%.1f deg dist=%.3f m\n",
+  Serial.printf("[nav] wp %u/%u target=(%.3f, %.3f) heading=%.1f deg dist=%.3f m\n",
+                (unsigned)(index + 1), (unsigned)navWaypointCount,
                 navTargetX, navTargetY, navTargetHeading * 180.0f / PI, navTargetDistance);
+}
+
+void navPlanAndStart(float tx, float ty) {
+  updateOdometry();
+
+  navWaypointCount = 0;
+  navWaypointIndex = 0;
+
+  const float currentX = poseX;
+  const float currentY = poseY;
+
+  if (fabsf(ty - currentY) > POSITION_TOLERANCE_M && navWaypointCount < NAV_MAX_WAYPOINTS) {
+    navWaypointX[navWaypointCount] = currentX;
+    navWaypointY[navWaypointCount] = ty;
+    navWaypointCount++;
+  }
+
+  if (fabsf(tx - currentX) > POSITION_TOLERANCE_M && navWaypointCount < NAV_MAX_WAYPOINTS) {
+    navWaypointX[navWaypointCount] = tx;
+    navWaypointY[navWaypointCount] = ty;
+    navWaypointCount++;
+  }
+
+  if (navWaypointCount == 0) {
+    Serial.println("Target already within tolerance.");
+    navStopAndIdle();
+    return;
+  }
+
+  Serial.printf("[nav] planned %u leg(s)\n", (unsigned)navWaypointCount);
+  navStartWaypoint(0);
 }
 
 void navUpdate() {
@@ -572,9 +677,13 @@ void navUpdate() {
 
     case NAV_ARRIVED:
       if (millis() - navArrivalAtMs > 200) {
-        navStopAndIdle();
-        Serial.printf("[nav] complete; pose x=%.3f y=%.3f heading=%.2f deg\n",
-                      poseX, poseY, poseHeading * 180.0f / PI);
+        if (navWaypointIndex + 1 < navWaypointCount) {
+          navStartWaypoint(navWaypointIndex + 1);
+        } else {
+          navStopAndIdle();
+          Serial.printf("[nav] complete; pose x=%.3f y=%.3f heading=%.2f deg\n",
+                        poseX, poseY, poseHeading * 180.0f / PI);
+        }
       }
       break;
 
@@ -598,8 +707,9 @@ void printHelp() {
   Serial.println("HELP");
   Serial.println();
   Serial.println("Global frame assumption: start pose is x=0, y=0, heading=90 deg (+Y axis).");
-  Serial.println("ZERO defines the current robot pose as that frame origin.");
+  Serial.println("ZERO reruns gyro zeroing and defines the current robot pose as that frame origin.");
   Serial.println("GO uses the current estimated pose and moves to the absolute target.");
+  Serial.println("GO plans axis-aligned legs (Y first, then X) to reduce diagonal heading error.");
   Serial.printf("Current ticks/m: left=%.3f right=%.3f\n", ticksPerMeterLeft, ticksPerMeterRight);
   Serial.printf("Current mag offsets/scales: off=(%.3f, %.3f, %.3f) scale=(%.3f, %.3f, %.3f)\n",
                 magOffsetXG, magOffsetYG, magOffsetZG, magScaleX, magScaleY, magScaleZ);
@@ -657,24 +767,16 @@ void calibrateIMU() {
   float axSum = 0.0f;
   float aySum = 0.0f;
   float azSum = 0.0f;
-  float gxSum = 0.0f;
-  float gySum = 0.0f;
-  float gzSum = 0.0f;
   uint16_t samples = 0;
 
   while (samples < IMU_CAL_SAMPLES) {
     if (imu.checkStatus()) {
       sfe_ism_data_t accel;
-      sfe_ism_data_t gyro;
       imu.getAccel(&accel);
-      imu.getGyro(&gyro);
 
       axSum += accel.xData;
       aySum += accel.yData;
       azSum += accel.zData;
-      gxSum += gyro.xData;
-      gySum += gyro.yData;
-      gzSum += gyro.zData;
       samples++;
     }
     delay(IMU_SAMPLE_DELAY_MS);
@@ -683,16 +785,11 @@ void calibrateIMU() {
   const float axAvg = axSum / (float)samples;
   const float ayAvg = aySum / (float)samples;
   const float azAvg = azSum / (float)samples;
-  const float gxAvg = gxSum / (float)samples;
-  const float gyAvg = gySum / (float)samples;
-  const float gzAvg = gzSum / (float)samples;
 
   accelOffsetXMg = axAvg;
   accelOffsetYMg = ayAvg;
   accelOffsetZMg = azAvg - EXPECTED_GRAVITY_MG;
-  gyroBiasXMdps = gxAvg;
-  gyroBiasYMdps = gyAvg;
-  gyroBiasZMdps = gzAvg;
+  calibrateGyroBiasQuick(false);
 
   Serial.println("IMU calibration complete.");
   Serial.printf("const float IMU_ACCEL_OFFSET_X_MG = %.3ff;\n", accelOffsetXMg);
@@ -930,7 +1027,7 @@ void goToXY(float targetX, float targetY) {
     return;
   }
   Serial.printf("GO command queued for target=(%.3f, %.3f)\n", targetX, targetY);
-  navStartTarget(targetX, targetY);
+  navPlanAndStart(targetX, targetY);
 }
 
 void processCommand(const char *cmd) {
@@ -959,6 +1056,7 @@ void processCommand(const char *cmd) {
 
   if (strcmp(cmd, "ZERO") == 0) {
     navStopAndIdle();
+    calibrateGyroBiasQuick(true);
     resetPoseAndOdometry();
     Serial.println("Pose reset to x=0, y=0, heading=90 deg. Encoders zeroed.");
     return;
