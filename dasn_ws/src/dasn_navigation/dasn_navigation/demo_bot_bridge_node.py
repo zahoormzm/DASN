@@ -30,6 +30,8 @@ class DemoBotBridgeNode(Node):
         self.declare_parameter('baud_rate', 115200)
         self.declare_parameter('pose_poll_interval_s', 1.0)
         self.declare_parameter('status_publish_interval_s', 0.5)
+        self.declare_parameter('auto_zero_on_connect', True)
+        self.declare_parameter('zero_settle_delay_s', 2.5)
         self.declare_parameter('door_a_x', 1.2)
         self.declare_parameter('door_a_y', 0.0)
         self.declare_parameter('door_b_x', 0.0)
@@ -47,6 +49,8 @@ class DemoBotBridgeNode(Node):
         self._status_publish_interval_s = float(
             self.get_parameter('status_publish_interval_s').value
         )
+        self._auto_zero_on_connect = bool(self.get_parameter('auto_zero_on_connect').value)
+        self._zero_settle_delay_s = float(self.get_parameter('zero_settle_delay_s').value)
 
         self._named_points = {
             'door_a': self._make_point(
@@ -87,6 +91,7 @@ class DemoBotBridgeNode(Node):
         self._active_waypoint_idx = -1
         self._cycle_patrol = False
         self._awaiting_arrival = False
+        self._needs_zero = True
 
         self._connect_serial()
         self._reader_thread = threading.Thread(target=self._read_loop, daemon=True)
@@ -120,6 +125,7 @@ class DemoBotBridgeNode(Node):
         try:
             self._serial = serial.Serial(self._serial_port, self._baud_rate, timeout=1.0)
             self.get_logger().info(f'Connected to bot serial {self._serial_port}')
+            self._needs_zero = True
             return True
         except Exception as exc:
             self.get_logger().warn(f'Bot serial connect failed: {exc}')
@@ -187,7 +193,7 @@ class DemoBotBridgeNode(Node):
             return
 
         if mission == 'zero':
-            self._send_line('ZERO')
+            self._run_zero_sequence()
             return
 
         if msg.waypoints:
@@ -204,6 +210,8 @@ class DemoBotBridgeNode(Node):
         self._cycle_patrol = mission == 'patrol_door_b'
         self._target_zone = msg.target_zone or self._target_zone_for_mission(mission)
         self._mode = self._mode_for_mission(mission)
+        if self._needs_zero:
+            self._run_zero_sequence()
         self._send_go(points[0])
 
     def _copy_point(self, src: Point) -> Point:
@@ -282,7 +290,22 @@ class DemoBotBridgeNode(Node):
                 self.get_logger().warn(f'Bot serial write failed: {exc}')
 
     def _poll_pose(self) -> None:
+        if self._auto_zero_on_connect and self._needs_zero:
+            self._run_zero_sequence()
         self._send_line('POSE')
+
+    def _run_zero_sequence(self) -> None:
+        if self._serial is None or not self._serial.is_open:
+            return
+        self.get_logger().info(
+            f'Running bot ZERO gyro reset; keep robot still for {self._zero_settle_delay_s:.1f}s'
+        )
+        self._send_line('STOP')
+        time.sleep(0.2)
+        self._send_line('ZERO')
+        self._needs_zero = False
+        if self._zero_settle_delay_s > 0.0:
+            time.sleep(self._zero_settle_delay_s)
 
     def _update_distance_remaining(self) -> None:
         dx = self._goal_point.x - self._pose_x

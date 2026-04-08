@@ -8,6 +8,8 @@
     demo_bot:
       pose_poll_interval_s: 1.0
       status_publish_interval_s: 0.5
+      auto_zero_on_connect: true
+      zero_settle_delay_s: 2.5
       door_a_x: 1.2
       door_a_y: 0.0
       door_b_x: 0.0
